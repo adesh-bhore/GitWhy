@@ -1,11 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import Groq from 'groq-sdk';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize Groq client
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -43,42 +49,23 @@ Guidelines:
 
     const prompt = `${SYSTEM_PROMPT}\n\nAnalyze this git diff and infer the developer's intent:\n\n\`\`\`diff\n${diff}\n\`\`\``;
 
-    // Call Grok API with timeout and better error handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.XAI_API_KEY }`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages: [
-          {
-            role: 'system',
-            content: SYSTEM_PROMPT
-          },
-          {
-            role: 'user',
-            content: `Analyze this git diff and infer the developer's intent:\n\n\`\`\`diff\n${diff}\n\`\`\``
-          }
-        ],
-        temperature: 0.7
-      }),
-      signal: controller.signal
+    // Call Groq API using SDK
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT
+        },
+        {
+          role: 'user',
+          content: `Analyze this git diff and infer the developer's intent:\n\n\`\`\`diff\n${diff}\n\`\`\``
+        }
+      ],
+      temperature: 0.7
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Grok API error ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    const text = data.choices[0].message.content.trim();
+    const text = response.choices[0].message.content.trim();
 
     // Strip markdown code fences
     const cleaned = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
