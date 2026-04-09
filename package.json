@@ -1,6 +1,6 @@
 {
   "name": "@di/gitwhy",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Enrich your git history with the WHY behind every change - AI-powered commit context capture and semantic search",
   "main": "src/index.js",
   "type": "module",
