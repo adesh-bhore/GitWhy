@@ -1,5 +1,5 @@
 {
-  "name": "gitwhy",
+  "name": "gitwhy-cli",
   "version": "2.0.0",
   "description": "Enrich your git history with the WHY behind every change - AI-powered commit context capture and semantic search",
   "main": "src/index.js",
