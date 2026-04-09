@@ -1,16 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import https from 'https';
 
 dotenv.config();
-
-// Create custom HTTPS agent with better SSL handling
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: true,
-  keepAlive: true,
-  timeout: 30000
-});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,7 +43,10 @@ Guidelines:
 
     const prompt = `${SYSTEM_PROMPT}\n\nAnalyze this git diff and infer the developer's intent:\n\n\`\`\`diff\n${diff}\n\`\`\``;
 
-    // Call Grok API
+    // Call Grok API with timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -72,8 +67,10 @@ Guidelines:
         ],
         temperature: 0.7
       }),
-      agent: httpsAgent
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -131,6 +128,9 @@ app.post('/api/generate-embedding', async (req, res) => {
     }
 
     // Use Voyage AI for embeddings (free tier available)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch('https://api.voyageai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -142,8 +142,10 @@ app.post('/api/generate-embedding', async (req, res) => {
         input: [text],
         input_type: inputType === 'query' ? 'query' : 'document'
       }),
-      agent: httpsAgent
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
