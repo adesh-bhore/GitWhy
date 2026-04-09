@@ -1,5 +1,5 @@
 {
-  "name": "gitwhy",
+  "name": "@di/gitwhy",
   "version": "1.0.0",
   "description": "Enrich your git history with the WHY behind every change - AI-powered commit context capture and semantic search",
   "main": "src/index.js",
@@ -10,8 +10,7 @@
   "scripts": {
     "dev": "node src/index.js",
     "lint": "node --check src/**/*.js",
-    "build:engine": "cd engine && bash build.sh",
-    "postinstall": "npm run build:engine || echo 'Warning: C engine compilation failed. Search functionality will not work.'"
+    "build:engine": "cd engine && bash build.sh"
   },
   "keywords": [
     "git",
@@ -23,11 +22,11 @@
     "commit-context",
     "git-hooks"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Adesh Bhore <adeshbhore2004@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adeshbhore/gitwhy.git"
+    "url": "https://github.com/adesh-bhore/gitwhy.git"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -40,7 +39,6 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
     "dotenv": "^17.4.1",

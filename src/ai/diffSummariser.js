@@ -2,7 +2,7 @@ import { truncateDiff } from '../core/diffAnalyser.js';
 
 export async function generateSummary(rawDiff) {
     const truncated = truncateDiff(rawDiff);
-    const GITWHY_API = process.env.GITWHY_API_URL || 'https://gitwhyserver-production.up.railway.app';
+    const GITWHY_API = process.env.GITWHY_API_URL || 'http://51.21.226.149:3000';
 
     try {
         const controller = new AbortController();

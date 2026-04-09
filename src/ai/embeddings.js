@@ -2,7 +2,7 @@
  * Embedding generation via GitWhy server (no local Ollama needed)
  */
 
-const GITWHY_API = process.env.GITWHY_API_URL || 'https://gitwhyserver-production.up.railway.app';
+const GITWHY_API = process.env.GITWHY_API_URL || 'http://51.21.226.149:3000';
 
 /**
  * Generate a semantic embedding vector for the given text.
