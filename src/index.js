@@ -8,7 +8,7 @@ import { finalizeCommand } from './commands/finalize.js';
 
 // Set default server URL (your hosted backend)
 if (!process.env.GITWHY_API_URL) {
-  process.env.GITWHY_API_URL = 'https://gitwhyserver-production.up.railway.app';
+  process.env.GITWHY_API_URL = 'http://51.21.226.149';
 }
 
 const program = new Command();

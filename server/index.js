@@ -1,8 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import https from 'https';
 
 dotenv.config();
+
+// Create custom HTTPS agent with better SSL handling
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: true,
+  keepAlive: true,
+  timeout: 30000
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,7 +57,7 @@ Guidelines:
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.XAI_API_KEY}`
-      },  
+      },
       body: JSON.stringify({
         model: 'grok-beta',
         messages: [
@@ -63,7 +71,8 @@ Guidelines:
           }
         ],
         temperature: 0.7
-      })
+      }),
+      agent: httpsAgent
     });
 
     if (!response.ok) {
@@ -98,9 +107,16 @@ Guidelines:
 
   } catch (error) {
     console.error('Error analyzing diff:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      cause: error.cause
+    });
     res.status(500).json({ 
       error: 'Failed to analyze diff',
-      message: error.message 
+      message: error.message,
+      details: error.code || error.name
     });
   }
 });
@@ -125,7 +141,8 @@ app.post('/api/generate-embedding', async (req, res) => {
         model: 'voyage-3-lite',
         input: [text],
         input_type: inputType === 'query' ? 'query' : 'document'
-      })
+      }),
+      agent: httpsAgent
     });
 
     if (!response.ok) {
@@ -138,9 +155,16 @@ app.post('/api/generate-embedding', async (req, res) => {
 
   } catch (error) {
     console.error('Error generating embedding:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      cause: error.cause
+    });
     res.status(500).json({ 
       error: 'Failed to generate embedding',
-      message: error.message 
+      message: error.message,
+      details: error.code || error.name
     });
   }
 });
