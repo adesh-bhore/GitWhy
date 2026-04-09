@@ -1,0 +1,57 @@
+{
+  "name": "gitwhy",
+  "version": "1.0.0",
+  "description": "Enrich your git history with the WHY behind every change - AI-powered commit context capture and semantic search",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "gitwhy": "./src/index.js"
+  },
+  "scripts": {
+    "dev": "node src/index.js",
+    "lint": "node --check src/**/*.js",
+    "build:engine": "cd engine && bash build.sh",
+    "postinstall": "npm run build:engine || echo 'Warning: C engine compilation failed. Search functionality will not work.'"
+  },
+  "keywords": [
+    "git",
+    "cli",
+    "developer-tools",
+    "ai",
+    "semantic-search",
+    "embeddings",
+    "commit-context",
+    "git-hooks"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adeshbhore/gitwhy.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src/",
+    "engine/search.c",
+    "engine/build.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "dotenv": "^17.4.1",
+    "inquirer": "^13.4.1",
+    "ora": "^9.3.0",
+    "simple-git": "^3.35.2"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0"
+  },
+  "jest": {
+    "transform": {}
+  }
+}

@@ -1,0 +1,12 @@
+# Don't publish these to npm
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+node_modules/
+__tests__/
+*.log
+.DS_Store
+.vscode/
+.idea/
