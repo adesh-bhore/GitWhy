@@ -51,10 +51,10 @@ Guidelines:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.XAI_API_KEY}`
+        'Authorization': `Bearer ${process.env.XAI_API_KEY || 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}`
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
@@ -135,7 +135,7 @@ app.post('/api/generate-embedding', async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.VOYAGE_API_KEY}`
+        'Authorization': `Bearer ${process.env.VOYAGE_API_KEY || pa-_qeU4igl-zCDQuOZrwtQbiPIdqXRR9nJXapl71XleU9 }`
       },
       body: JSON.stringify({
         model: 'voyage-3-lite',
