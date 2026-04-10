@@ -105,7 +105,7 @@ Guidelines:
   }
 });
 
-// Generate embeddings using Voyage AI (free tier, no credit card)
+// Generate embeddings using Cohere (primary) with Voyage AI fallback
 app.post('/api/generate-embedding', async (req, res) => {
   try {
     const { text, inputType = 'document' } = req.body;
@@ -114,7 +114,42 @@ app.post('/api/generate-embedding', async (req, res) => {
       return res.status(400).json({ error: 'Text is required' });
     }
 
-    // Use Voyage AI for embeddings (free tier available)
+    // Try Cohere first (better quality embeddings)
+    if (process.env.COHERE_API_KEY) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        const response = await fetch('https://api.cohere.ai/v1/embed', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.COHERE_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'embed-english-v3.0',
+            texts: [text],
+            input_type: inputType === 'query' ? 'search_query' : 'search_document',
+            embedding_types: ['float']
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          return res.json({ embedding: data.embeddings.float[0] });
+        }
+        
+        // If Cohere fails, fall through to Voyage AI
+        console.warn('Cohere API failed, falling back to Voyage AI');
+      } catch (cohereErr) {
+        console.warn('Cohere error:', cohereErr.message, '- falling back to Voyage AI');
+      }
+    }
+
+    // Fallback to Voyage AI
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 

@@ -5,6 +5,7 @@ import { captureCommand } from './commands/capture.js';
 import { searchCommand } from './commands/search.js';
 import { logCommand } from './commands/log.js';
 import { finalizeCommand } from './commands/finalize.js';
+import { rebuildCommand } from './commands/rebuild.js';
 
 // Set default server URL (your hosted backend)
 if (!process.env.GITWHY_API_URL) {
@@ -23,5 +24,6 @@ program.addCommand(captureCommand());
 program.addCommand(searchCommand());
 program.addCommand(logCommand());
 program.addCommand(finalizeCommand());
+program.addCommand(rebuildCommand());
 
 program.parse();

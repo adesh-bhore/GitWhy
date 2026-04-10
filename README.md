@@ -46,6 +46,25 @@ You'll be prompted:
 
 Or press Ctrl+C to let AI generate the context automatically.
 
+### Skip Interactive Mode (AI Only)
+
+To always use AI without prompts:
+
+```bash
+# One-time skip
+GITWHY_SKIP=true git commit -m "your message"
+
+# Always skip (add to your shell profile)
+export GITWHY_SKIP=true
+```
+
+Or set in your repository's `.gitwhy/config.json`:
+```json
+{
+  "autoEnrich": true
+}
+```
+
 ### Search Your Decision History
 
 ```bash

@@ -39,9 +39,32 @@ export async function semanticSearch(query, topK = 5, minScore = 0.1) {
     /* Hydrate with context metadata and apply minimum score filter */
     const ctxMap = Object.fromEntries(contexts.map(c => [c.commitHash, c]));
 
+    // Hybrid search: combine semantic similarity with keyword matching
+    const queryLower = query.toLowerCase();
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 3);
+
     const results = rawResults
-        .filter(r => r.score >= minScore && ctxMap[r.commitHash])
-        .map(r => ({ ...ctxMap[r.commitHash], score: r.score }));
+        .filter(r => ctxMap[r.commitHash])
+        .map(r => {
+            const ctx = ctxMap[r.commitHash];
+            const textToSearch = `${ctx.problem} ${ctx.alternatives} ${ctx.files?.join(' ') || ''}`.toLowerCase();
+            
+            // Calculate keyword match score
+            const keywordMatches = queryWords.filter(word => textToSearch.includes(word)).length;
+            const keywordScore = queryWords.length > 0 ? keywordMatches / queryWords.length : 0;
+            
+            // Combine semantic and keyword scores (favor keywords more: 30% semantic, 70% keyword)
+            const combinedScore = (r.score * 0.5) + (keywordScore * 0.5);
+            
+            return { 
+                ...ctx, 
+                score: combinedScore,
+                semanticScore: r.score,
+                keywordScore: keywordScore
+            };
+        })
+        .filter(r => r.score >= minScore)
+        .sort((a, b) => b.score - a.score);
 
     return { results };
 }

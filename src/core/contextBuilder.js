@@ -51,7 +51,7 @@ export async function captureContext(provisionalKey , rawDiff){
         return captureContextAI(provisionalKey, rawDiff);
     }
 
-    const contextText = buildContextText(answers.problem, answers.alternatives);
+    const contextText = buildContextText(answers.problem, answers.alternatives, parsed.files);
     const embedding = await generateEmbeddingQuietly(contextText);
 
 
@@ -108,7 +108,7 @@ export async function captureContextAI(provisionalKey, rawDiff) {
     // Auto-accept if GITWHY_AUTO_ENRICH is true
     if (process.env.GITWHY_AUTO_ENRICH === 'true') {
         console.log(chalk.green('✓ AI context auto-accepted'));
-        const contextText = buildContextText(summary.problem, summary.alternatives);
+        const contextText = buildContextText(summary.problem, summary.alternatives, parsed.files);
         const embedding = await generateEmbeddingQuietly(contextText);
 
         return {
@@ -163,7 +163,7 @@ export async function captureContextAI(provisionalKey, rawDiff) {
         finalAlternatives = edits.alternatives;
     }
 
-    const contextText = buildContextText(finalProblem, finalAlternatives);
+    const contextText = buildContextText(finalProblem, finalAlternatives, parsed.files);
     const embedding = await generateEmbeddingQuietly(contextText);
 
     return {
@@ -180,8 +180,9 @@ export async function captureContextAI(provisionalKey, rawDiff) {
 }
 
 
-function buildContextText(problem, alternatives) {
-  return `Problem: ${problem}\nAlternatives considered: ${alternatives}`;
+function buildContextText(problem, alternatives, files = []) {
+  const fileContext = files.length > 0 ? `\nFiles: ${files.join(', ')}` : '';
+  return `Problem: ${problem}\nAlternatives considered: ${alternatives}${fileContext}`;
 }
 
 async function generateEmbeddingQuietly(text) {

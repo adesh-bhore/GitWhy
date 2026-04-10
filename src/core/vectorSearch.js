@@ -2,11 +2,48 @@ import { spawn }     from 'child_process';
 import { readFile }  from 'fs/promises';
 import path          from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENGINE    = path.join(__dirname, '../../engine/search');
+const ENGINE_EXE = path.join(__dirname, '../../engine/search.exe');
 const DIMS      = parseInt(process.env.GITWHY_DIMS || '768');
+
+
+/**
+ * JavaScript fallback for cosine similarity calculation
+ */
+function cosineSimilarity(vecA, vecB) {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/**
+ * JavaScript fallback search when C engine is not available
+ */
+async function jsVectorSearch(queryVec, embeddingsPath, topK = 5) {
+    const raw = await readFile(embeddingsPath, 'utf8');
+    const stored = JSON.parse(raw);
+    
+    const results = stored.map(entry => ({
+        commitHash: entry.commitHash,
+        score: cosineSimilarity(queryVec, entry.vector)
+    }));
+    
+    // Sort by score descending and take top K
+    results.sort((a, b) => b.score - a.score);
+    return results.slice(0, topK);
+}
 
 
 
@@ -40,12 +77,20 @@ function serializeVector(vec) {
 
 
 export async function vectorSearch(queryVec, embeddingsPath, topK = 5) {
+    // Check if C engine exists, otherwise use JavaScript fallback
+    const enginePath = process.platform === 'win32' ? ENGINE_EXE : ENGINE;
+    
+    if (!fs.existsSync(enginePath)) {
+        console.warn('C search engine not found, using JavaScript fallback (slower)');
+        return jsVectorSearch(queryVec, embeddingsPath, topK);
+    }
+
     const raw    = await readFile(embeddingsPath, 'utf8');
     const stored = JSON.parse(raw);           // [{commitHash, vector}]
     const hashes = stored.map(e => e.commitHash);
 
     return new Promise((resolve, reject) => {
-        const child = spawn(ENGINE, [String(topK), String(DIMS)]);
+        const child = spawn(enginePath, [String(topK), String(DIMS)]);
 
         let stdout = '';
         let stderr = '';
@@ -72,7 +117,9 @@ export async function vectorSearch(queryVec, embeddingsPath, topK = 5) {
         });
 
         child.on('error', err => {
-            reject(new Error(`failed to spawn search engine: ${err.message} — did you run 'npm run build:engine'?`));
+            // Fallback to JavaScript if spawn fails
+            console.warn('C engine spawn failed, using JavaScript fallback');
+            resolve(jsVectorSearch(queryVec, embeddingsPath, topK));
         });
 
         /* Write query vector first, then all stored vectors */

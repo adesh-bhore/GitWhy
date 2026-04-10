@@ -55,6 +55,12 @@ if [ "$COMMIT_SOURCE" = "merge" ] || [ "$COMMIT_SOURCE" = "squash" ]; then
   exit 0
 fi
 
+# Check for --skip flag in environment
+if [ "$GITWHY_SKIP" = "true" ]; then
+  gitwhy capture "$COMMIT_MSG_FILE" "$COMMIT_SOURCE" "$SHA" --skip
+  exit 0
+fi
+
 # Redirect input from terminal for interactive prompts
 exec < /dev/tty
 gitwhy capture "$COMMIT_MSG_FILE" "$COMMIT_SOURCE" "$SHA"
