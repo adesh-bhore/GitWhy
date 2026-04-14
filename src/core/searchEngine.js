@@ -2,6 +2,7 @@ import path          from 'path';
 import { readFile }  from 'fs/promises';
 import { generateEmbedding } from '../ai/embeddings.js';
 import { vectorSearch }      from './vectorSearch.js';
+import { bm25Search, prepareDocuments } from './bm25.js';
 
 
 const EMBEDDINGS_PATH = path.join(process.cwd(), '.gitwhy', 'embeddings.json');
@@ -10,15 +11,14 @@ const CONTEXTS_PATH   = path.join(process.cwd(), '.gitwhy', 'contexts.json');
 
 
 /**
- * Main search function.
+ * Main search function using BM25 (primary) + embeddings (boost)
  *
- * 1. Embeds the query via Ollama nomic-embed-text (input_type='query')
- * 2. Spawns the C engine to compute cosine similarity over all stored vectors
- * 3. Hydrates the top-K index results with context metadata
+ * BM25 is the industry standard for text search (used by Elasticsearch, Lucene)
+ * Embeddings provide semantic understanding as a secondary signal
  *
  * @param {string} query    - Natural language search query
  * @param {number} topK     - Number of results to return
- * @param {number} minScore - Minimum cosine similarity threshold (0-1)
+ * @param {number} minScore - Minimum score threshold (0-1)
  */
 
 
@@ -30,41 +30,44 @@ export async function semanticSearch(query, topK = 5, minScore = 0.1) {
         return { results: [], message: 'No context entries found. Run `gitwhy init` and make some commits.' };
     }
 
-    /* Embed with 'query' input type — nomic-embed-text uses prefix convention */
-    const queryVec = await generateEmbedding(query, 'query');
+    // Prepare documents for BM25
+    const documents = prepareDocuments(contexts);
+    
+    // BM25 search (primary ranking)
+    const bm25Results = bm25Search(query, documents);
+    const bm25Map = Object.fromEntries(bm25Results.map(r => [r.id, r.score]));
 
-    /* C engine does the heavy arithmetic — returns [{commitHash, score}] */
-    const rawResults = await vectorSearch(queryVec, EMBEDDINGS_PATH, topK);
+    // Try to get embedding-based scores (secondary boost)
+    let embeddingMap = {};
+    try {
+        const queryVec = await generateEmbedding(query, 'query');
+        const embeddingResults = await vectorSearch(queryVec, EMBEDDINGS_PATH, contexts.length);
+        embeddingMap = Object.fromEntries(embeddingResults.map(r => [r.commitHash, r.score]));
+    } catch (err) {
+        console.warn('Embedding search failed, using BM25 only:', err.message);
+    }
 
-    /* Hydrate with context metadata and apply minimum score filter */
+    // Combine scores: 85% BM25 (text matching), 15% embeddings (semantic)
     const ctxMap = Object.fromEntries(contexts.map(c => [c.commitHash, c]));
-
-    // Hybrid search: combine semantic similarity with keyword matching
-    const queryLower = query.toLowerCase();
-    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 3);
-
-    const results = rawResults
-        .filter(r => ctxMap[r.commitHash])
-        .map(r => {
-            const ctx = ctxMap[r.commitHash];
-            const textToSearch = `${ctx.problem} ${ctx.alternatives} ${ctx.files?.join(' ') || ''}`.toLowerCase();
+    
+    const results = contexts
+        .map(ctx => {
+            const bm25Score = bm25Map[ctx.commitHash] || 0;
+            const embeddingScore = embeddingMap[ctx.commitHash] || 0;
             
-            // Calculate keyword match score
-            const keywordMatches = queryWords.filter(word => textToSearch.includes(word)).length;
-            const keywordScore = queryWords.length > 0 ? keywordMatches / queryWords.length : 0;
+            // Weighted combination
+            const combinedScore = (bm25Score * 0.85) + (embeddingScore * 0.15);
             
-            // Combine semantic and keyword scores (favor keywords more: 30% semantic, 70% keyword)
-            const combinedScore = (r.score * 0.5) + (keywordScore * 0.5);
-            
-            return { 
-                ...ctx, 
+            return {
+                ...ctx,
                 score: combinedScore,
-                semanticScore: r.score,
-                keywordScore: keywordScore
+                bm25Score: bm25Score,
+                embeddingScore: embeddingScore
             };
         })
         .filter(r => r.score >= minScore)
-        .sort((a, b) => b.score - a.score);
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
 
     return { results };
 }

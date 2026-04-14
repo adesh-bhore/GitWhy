@@ -54,6 +54,10 @@ temp/
 
 # GitWhy specific
 .gitwhy/.pending
+.gitwhy/embeddings.json       # Large file - regenerate with 'gitwhy rebuild'
+.gitwhy/dependency-graph.json # Large file - regenerate from git history
+
+# Keep contexts.json committed (small, human-readable, useful)
 
 # Compiled C engine (will be rebuilt on install)
 engine/search

@@ -67,11 +67,14 @@ gitwhy capture "$COMMIT_MSG_FILE" "$COMMIT_SOURCE" "$SHA"
 `;
 
     // Post-commit hook to update provisional hash with real commit hash
+    // AND index the commit into the dependency graph
     const postCommitHook = `#!/bin/sh
-# GitWhy — finalize commit hash
+# GitWhy — finalize commit hash and index dependency graph
 # Updates provisional hash with real commit hash after commit completes
+# Then indexes the commit into the dependency graph
 
 gitwhy finalize
+gitwhy graph-index
 `;
 
     fs.mkdirSync(hooksDir, { recursive: true });
@@ -82,8 +85,34 @@ gitwhy finalize
     fs.writeFileSync(postCommitPath, postCommitHook);
     fs.chmodSync(postCommitPath, '755');
 
+    // prepare-merge-msg hook — conflict oracle
+    const prepareMergeHook = `#!/bin/sh
+# GitWhy — conflict oracle
+# Installed by: gitwhy init
+
+MERGE_MSG_FILE=$1
+MERGE_TYPE=$2
+
+# Only run on real merges, not squash/rebase
+if [ "$MERGE_TYPE" = "merge" ] || [ -z "$MERGE_TYPE" ]; then
+  gitwhy conflict
+fi
+`;
+
+    const prepareMergePath = path.join(hooksDir, 'prepare-merge-msg');
+    if (!fs.existsSync(prepareMergePath)) {
+      fs.writeFileSync(prepareMergePath, prepareMergeHook);
+      fs.chmodSync(prepareMergePath, '755');
+    }
+
+    // Initialize empty dependency graph
+    const graphPath = path.join(gitwhyDir, 'dependency-graph.json');
+    if (!fs.existsSync(graphPath)) {
+      fs.writeFileSync(graphPath, JSON.stringify({ nodes: [], edges: [] }, null, 2) + '\n');
+    }
+
     console.log(chalk.green('✓ GitWhy initialized'));
-    console.log(chalk.gray('  Hook:    .git/hooks/prepare-commit-msg'));
+    console.log(chalk.gray('  Hooks:   .git/hooks/prepare-commit-msg, post-commit, prepare-merge-msg'));
     console.log(chalk.gray('  Storage: .gitwhy/'));
     console.log('');
     console.log(chalk.bold('Next steps:'));
